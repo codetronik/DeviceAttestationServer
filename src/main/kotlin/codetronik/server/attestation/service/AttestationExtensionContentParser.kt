@@ -48,7 +48,7 @@ data class AuthorizationList(
 	val rootOfTrust: RootOfTrust?,
 	val osVersion: Int?,
 	val osPatchLevel: Int?,
-	val attestationApplicationId: String?,
+	val attestationApplicationId: ByteArray?,
 	val attestationIdBrand: String?,
 	val attestationIdDevice: String?,
 	val attestationIdProduct: String?,

@@ -70,27 +70,59 @@ class AuthorizationListParser(sequenceObjects: List<Any>) {
 	val ecCurve get() = (tagMap[TagIndex.EcCurve.index] as? ASN1Integer)?.value?.toInt()
 	val rsaPublicExponent get() = (tagMap[TagIndex.RsaPublicExponent.index] as? ASN1Integer)?.value?.toLong()
 	val mgfDigest get() = (tagMap[TagIndex.MgfDigest.index] as? ASN1Set)?.objects?.toList()?.map { (it as ASN1Integer).value.toInt() }
-	val rollbackResistance get() = tagMap[TagIndex.RollbackResistance.index] is ASN1Null
-	val earlyBootOnly get() = tagMap[TagIndex.EarlyBootOnly.index] is ASN1Null
+	val rollbackResistance get() = when (tagMap[TagIndex.RollbackResistance.index]) {
+		is ASN1Null -> true
+		null -> null
+		else -> false
+	}
+	val earlyBootOnly get() = when (tagMap[TagIndex.EarlyBootOnly.index]) {
+		is ASN1Null -> true
+		null -> null
+		else -> false
+	}
 	val activeDateTime get() = (tagMap[TagIndex.ActiveDateTime.index] as? ASN1Integer)?.value?.toLong()
 	val originationExpireDateTime get() = (tagMap[TagIndex.OriginationExpireDateTime.index] as? ASN1Integer)?.value?.toLong()
 	val usageExpireDateTime get() = (tagMap[TagIndex.UsageExpireDateTime.index] as? ASN1Integer)?.value?.toLong()
 	val usageCountLimit get() = (tagMap[TagIndex.UsageCountLimit.index] as? ASN1Integer)?.value?.toLong()
-	val noAuthRequired get() = tagMap[TagIndex.NoAuthRequired.index] is ASN1Null
+	val noAuthRequired get() = when (tagMap[TagIndex.NoAuthRequired.index]) {
+		is ASN1Null -> true
+		null -> null
+		else -> false
+	}
 	val userAuthType get() = (tagMap[TagIndex.UserAuthType.index] as? ASN1Integer)?.value?.toInt()
 	val authTimeout get() = (tagMap[TagIndex.AuthTimeout.index] as? ASN1Integer)?.value?.toInt()
-	val allowWhileOnBody get() = tagMap[TagIndex.AllowWhileOnBody.index] is ASN1Null
-	val trustedUserPresenceRequired get() = tagMap[TagIndex.TrustedUserPresenceRequired.index] is ASN1Null
-	val trustedConfirmationRequired get() = tagMap[TagIndex.TrustedConfirmationRequired.index] is ASN1Null
-	val unlockedDeviceRequired get() = tagMap[TagIndex.UnlockedDeviceRequired.index] is ASN1Null
-	val allApplications get() = tagMap[TagIndex.AllApplications.index] is ASN1Null
+	val allowWhileOnBody get() = when (tagMap[TagIndex.AllowWhileOnBody.index]) {
+		is ASN1Null -> true
+		null -> null
+		else -> false
+	}
+	val trustedUserPresenceRequired get() = when (tagMap[TagIndex.TrustedUserPresenceRequired.index]) {
+		is ASN1Null -> true
+		null -> null
+		else -> false
+	}
+	val trustedConfirmationRequired get() = when (tagMap[TagIndex.TrustedConfirmationRequired.index]) {
+		is ASN1Null -> true
+		null -> null
+		else -> false
+	}
+	val unlockedDeviceRequired get() = when (tagMap[TagIndex.UnlockedDeviceRequired.index]) {
+		is ASN1Null -> true
+		null -> null
+		else -> false
+	}
+	val allApplications get() = when (tagMap[TagIndex.AllApplications.index]) {
+		is ASN1Null -> true
+		null -> null
+		else -> false
+	}
 	val applicationId get() = (tagMap[TagIndex.ApplicationId.index] as? DEROctetString)?.octets?.let { String(it) }
 	val creationDateTime get() = (tagMap[TagIndex.CreationDateTime.index] as? ASN1Integer)?.value?.toLong()
 	val origin get() = (tagMap[TagIndex.Origin.index] as? ASN1Integer)?.value?.toInt()
 	val rootOfTrust get() = (tagMap[TagIndex.RootOfTrust.index] as? ASN1Sequence)?.let { parseRootOfTrust(it) }
 	val osVersion get() = (tagMap[TagIndex.OsVersion.index] as? ASN1Integer)?.value?.toInt()
 	val osPatchLevel get() = (tagMap[TagIndex.OsPatchLevel.index] as? ASN1Integer)?.value?.toInt()
-	val attestationApplicationId get() = (tagMap[TagIndex.AttestationApplicationId.index] as? DEROctetString)?.octets?.let { String(it) }
+	val attestationApplicationId get() = (tagMap[TagIndex.AttestationApplicationId.index] as? DEROctetString)?.octets
 	val attestationIdBrand get() = (tagMap[TagIndex.AttestationIdBrand.index] as? DEROctetString)?.octets?.let { String(it) }
 	val attestationIdDevice get() = (tagMap[TagIndex.AttestationIdDevice.index] as? DEROctetString)?.octets?.let { String(it) }
 	val attestationIdProduct get() = (tagMap[TagIndex.AttestationIdProduct.index] as? DEROctetString)?.octets?.let { String(it) }
@@ -101,7 +133,12 @@ class AuthorizationListParser(sequenceObjects: List<Any>) {
 	val attestationIdModel get() = (tagMap[TagIndex.AttestationIdModel.index] as? DEROctetString)?.octets?.let { String(it) }
 	val vendorPatchLevel get() = (tagMap[TagIndex.VendorPatchLevel.index] as? ASN1Integer)?.value?.toInt()
 	val bootPatchLevel get() = (tagMap[TagIndex.BootPatchLevel.index] as? ASN1Integer)?.value?.toInt()
-	val deviceUniqueAttestation get() = tagMap[TagIndex.DeviceUniqueAttestation.index] is ASN1Null
+	val deviceUniqueAttestation get() =
+		when (tagMap[TagIndex.DeviceUniqueAttestation.index]) {
+			is ASN1Null -> true
+			null -> null
+			else -> false
+		}
 
 	private fun parseRootOfTrust(sequence: ASN1Sequence): RootOfTrust {
 		val iterator = sequence.objects

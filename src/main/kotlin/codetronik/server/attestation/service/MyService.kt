@@ -21,14 +21,32 @@ class MyService(private val redisTemplate: RedisTemplate<String, Any>) {
 	fun sendCertChain(certChain: String) : Boolean {
 		val verifier = Verifier()
 		val certList = verifier.convertCertChain(certChain)
-		if (!verifier.verifyCertChain(redisTemplate, certList)) {
+
+		val parser = AttestationExtensionContentParser()
+		val keyDescription = parser.parseKeyDescription(certList.first())
+		if (keyDescription == null) {
+			return false
+		}
+
+		// 인증서 체인 검증
+		if (!verifier.verifyCertChain(certList)) {
 			println("Certificate verification failure")
 			return false
 		}
 
-		if (!verifier.isTrustedDevice(certList.first())) {
+		// 챌린지 확인
+		if (!verifier.verifyChallenge(keyDescription, redisTemplate)) {
+			println("Challenge mismatch")
+		}
+
+		// 루팅 여부 확인
+		if (!verifier.isTrustedDevice(keyDescription)) {
 			println("Untrusted Device")
-			return false
+		}
+
+		// 앱 위변조 확인
+		if (!verifier.verifyCertificateFingerprint(keyDescription)) {
+			println("Fingerprint mismatch")
 		}
 
 		return true

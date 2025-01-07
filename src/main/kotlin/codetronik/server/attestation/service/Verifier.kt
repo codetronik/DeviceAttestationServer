@@ -7,6 +7,9 @@ import java.security.PublicKey
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import java.security.spec.X509EncodedKeySpec
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Base64
 
 class Verifier {
@@ -18,14 +21,26 @@ class Verifier {
 		return keyFactory.generatePublic(keySpec)
 	}
 
-	fun isTrustedDevice(certificate: X509Certificate) : Boolean {
-		val parser = AttestationExtensionContentParser()
+	// 앱을 서명한 인증서의 지문이 일치하는지 확인
+	// 인증서의 지문 : 인증서를 단순 SHA-256
+	fun verifyCertificateFingerprint(keyDescription : KeyDescription) : Boolean {
+		val attestationApplicationId = keyDescription.softwareEnforced.attestationApplicationId
 
-		val keyDescription = parser.parseKeyDescription(certificate)
-		if (keyDescription == null) {
+		// 마지막 32바이트를 잘라내기
+		val fingerprint = attestationApplicationId?.copyOfRange(attestationApplicationId.size - 32, attestationApplicationId.size)
+		val fingerprintString = fingerprint?.joinToString("") { String.format("%02x", it) }
+
+		// Fill in your fingerprint
+		// $ apksigner verify --print-certs app-debug.apk
+		val apkFingerprint = "e92796665ff2e9b82bc51c1cc86f20c0ea8b9d1dbd6d76ac81b4ca75f03953ad"
+		if (fingerprintString != apkFingerprint) {
 			return false
 		}
 
+		return true
+	}
+
+	fun isTrustedDevice(keyDescription : KeyDescription) : Boolean {
 		// 0 : Verified
 		// 1 : SelfSigned
 		// 2 : Unverified
@@ -34,13 +49,28 @@ class Verifier {
 		println("Device locked : " + keyDescription.teeEnforced.rootOfTrust?.deviceLocked)
 
 		// 루팅 디바이스 체크
-		if (keyDescription.teeEnforced.rootOfTrust?.verifiedBootState == 2) {
-			println("rooted")
+		if (keyDescription.teeEnforced.rootOfTrust?.verifiedBootState != 0) {
 			return false
 		}
 
 		if (keyDescription.teeEnforced.rootOfTrust?.deviceLocked == false) {
-			println("rooted")
+			return false
+		}
+
+		return true
+	}
+
+	fun verifyChallenge(keyDescription : KeyDescription, redisTemplate : RedisTemplate<String, Any>?) : Boolean {
+		val milliseconds = keyDescription.softwareEnforced.creationDateTime
+		val instant = milliseconds?.let { Instant.ofEpochMilli(it) }
+		val dateTime = instant?.atZone(ZoneId.systemDefault())
+
+		val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+		val formattedDateTime = dateTime?.format(formatter)
+
+		println("Certificate creation time : $formattedDateTime")
+
+		if (redisTemplate!!.opsForValue().get(keyDescription.attestationChallenge) == null) {
 			return false
 		}
 
@@ -66,22 +96,10 @@ class Verifier {
 		return certList
 	}
 
-	fun verifyCertChain(redisTemplate : RedisTemplate<String, Any>?, certList: MutableList<X509Certificate>) : Boolean {
-		val parser = AttestationExtensionContentParser()
-
-		val keyDescription = parser.parseKeyDescription(certList.first())
-		if (keyDescription == null) {
-			return false
-		}
-
-		if (redisTemplate!!.opsForValue().get(keyDescription.attestationChallenge) == null) {
-			println("Challenge does not match.")
-			return false
-		}
-
+	fun verifyCertChain(certList: MutableList<X509Certificate>) : Boolean {
 		// 루트 인증서 검증
 		val rootCertificate = certList.last()
-		rootCertificate.serialNumber
+
 		try {
 			rootCertificate.verify(getGoogleRootPublicKey())
 		} catch (e: Exception) {
@@ -94,7 +112,7 @@ class Verifier {
 			val currentCert = certList[i]
 			val issuerCert = certList[i + 1]
 			try {
-				// 현재 인증서의 서명을 상위 인증서의 공개 키로 검증
+				// 현재 인증서의 무결성을 상위 인증서의 공개 키로 검증
 				currentCert.verify(issuerCert.publicKey)
 			} catch (e: Exception) {
 				println("Failed to verify certificate at index $i: ${e.message}")
